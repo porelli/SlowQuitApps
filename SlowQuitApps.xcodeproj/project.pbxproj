@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0601D8D6195D22C400A2CB2E /* SQADialogs.m in Sources */ = {isa = PBXBuildFile; fileRef = 0601D8D5195D22C400A2CB2E /* SQADialogs.m */; };
+		0601D8D9195D22C500A2CB2E /* SQAPermissionsWizard.m in Sources */ = {isa = PBXBuildFile; fileRef = 0601D8D8195D22C500A2CB2E /* SQAPermissionsWizard.m */; };
 		060A2EA6194ABB5200B51D29 /* SQAOverlayWindowController.m in Sources */ = {isa = PBXBuildFile; fileRef = 060A2EA5194ABB5200B51D29 /* SQAOverlayWindowController.m */; };
 		060A2EA9194ABD9B00B51D29 /* SQAOverlayView.m in Sources */ = {isa = PBXBuildFile; fileRef = 060A2EA8194ABD9B00B51D29 /* SQAOverlayView.m */; };
 		060D55EC2599B4910005AFCE /* sqa in CopyFiles */ = {isa = PBXBuildFile; fileRef = 060D55E32599B47D0005AFCE /* sqa */; };
@@ -77,6 +78,8 @@
 /* Begin PBXFileReference section */
 		0601D8D4195D22C400A2CB2E /* SQADialogs.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SQADialogs.h; sourceTree = "<group>"; };
 		0601D8D5195D22C400A2CB2E /* SQADialogs.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SQADialogs.m; sourceTree = "<group>"; };
+		0601D8D7195D22C500A2CB2E /* SQAPermissionsWizard.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SQAPermissionsWizard.h; sourceTree = "<group>"; };
+		0601D8D8195D22C500A2CB2E /* SQAPermissionsWizard.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SQAPermissionsWizard.m; sourceTree = "<group>"; };
 		060A2EA4194ABB5200B51D29 /* SQAOverlayWindowController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SQAOverlayWindowController.h; sourceTree = "<group>"; };
 		060A2EA5194ABB5200B51D29 /* SQAOverlayWindowController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SQAOverlayWindowController.m; sourceTree = "<group>"; };
 		060A2EA7194ABD9B00B51D29 /* SQAOverlayView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SQAOverlayView.h; sourceTree = "<group>"; };
@@ -221,6 +224,8 @@
 				06789FC0217C7A03001E4CCB /* SQAAutostart.m */,
 				0601D8D4195D22C400A2CB2E /* SQADialogs.h */,
 				0601D8D5195D22C400A2CB2E /* SQADialogs.m */,
+				0601D8D7195D22C500A2CB2E /* SQAPermissionsWizard.h */,
+				0601D8D8195D22C500A2CB2E /* SQAPermissionsWizard.m */,
 				060A2EA7194ABD9B00B51D29 /* SQAOverlayView.h */,
 				060A2EA8194ABD9B00B51D29 /* SQAOverlayView.m */,
 				063486B01953AF6C007E8964 /* SQAOverlayViewInterface.h */,
@@ -423,6 +428,7 @@
 				060A2EA9194ABD9B00B51D29 /* SQAOverlayView.m in Sources */,
 				0601D8D6195D22C400A2CB2E /* SQADialogs.m in Sources */,
 				06789FC1217C7A03001E4CCB /* SQAAutostart.m in Sources */,
+				0601D8D9195D22C500A2CB2E /* SQAPermissionsWizard.m in Sources */,
 				06950475194A81E9007AB2D5 /* main.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

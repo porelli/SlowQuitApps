@@ -21,6 +21,8 @@ static NSString * _Nullable stringFromCGKeyboardEvent(CGEventRef event);
     CGEventSourceRef _Nullable appEventSource;
     BOOL appSwitcherActive;
 }
+
+@property (nonatomic, strong) SQADialogs *dialogs;
 @end
 
 @implementation SQAAppDelegate
@@ -37,28 +39,103 @@ static NSString * _Nullable stringFromCGKeyboardEvent(CGEventRef event);
 }
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
-    SQADialogs *dialogs = [[SQADialogs alloc] init];
+    self.dialogs = [[SQADialogs alloc] init];
 
-    if (!hasAccessibility()) {
-        [dialogs informAccessibilityRequirement];
-        // If we terminate now, the special accesibility alert/dialog
-        // from the framework/OS will dissappear immediately.
-        return;
-    }
-
+    // Handle autostart preferences
     if ([SQAPreferences disableAutostart]) {
         [SQAAutostart disable];
     } else if (![SQAAutostart isEnabled]) {
-        [dialogs askAboutAutoStart];
+        [self.dialogs askAboutAutoStart];
     }
 
+    // Check for accessibility permissions
+    if (!hasAccessibility()) {
+        NSLog(@"Accessibility permissions not granted, showing permissions wizard");
+        
+        // Show our step-by-step wizard to guide the user through granting permissions
+        [self.dialogs showAccessibilityPermissionsWizard:^(BOOL granted) {
+            if (granted) {
+                // User completed the wizard and permissions were granted
+                NSLog(@"Accessibility permissions granted through wizard, continuing setup");
+                [self continueSetupWithPermissions];
+            } else {
+                // User canceled the wizard
+                NSLog(@"User canceled permissions wizard, quitting");
+                [NSApp terminate:self];
+            }
+        }];
+        
+        // Keep the app visible until permissions are granted
+        return;
+    }
+    
+    // If we already have permissions, continue with setup
+    [self continueSetupWithPermissions];
+}
+
+// This method is no longer needed as we're using the interactive dialog approach
+// Keeping it commented out for reference
+/*
+- (void)checkAccessibilityAndContinue {
+    // Check if accessibility permissions have been granted
+    if (hasAccessibility()) {
+        NSLog(@"Accessibility permissions granted, continuing setup");
+        
+        // Stop the timer
+        [self.accessibilityCheckTimer invalidate];
+        self.accessibilityCheckTimer = nil;
+        
+        // Continue with setup now that we have permissions
+        [self continueSetupWithPermissions];
+    } else {
+        NSLog(@"Waiting for accessibility permissions...");
+    }
+}
+*/
+
+- (void)continueSetupWithPermissions {
+    // Double-check that we have accessibility permissions before proceeding
+    if (!hasAccessibility()) {
+        NSLog(@"Accessibility permissions still not granted, showing wizard again");
+        
+        // Show our step-by-step wizard to guide the user through granting permissions
+        [self.dialogs showAccessibilityPermissionsWizard:^(BOOL granted) {
+            if (granted) {
+                // User completed the wizard and permissions were granted
+                NSLog(@"Accessibility permissions granted through wizard, continuing setup");
+                [self continueSetupWithPermissions];
+            } else {
+                // User canceled the wizard
+                NSLog(@"User canceled permissions wizard, quitting");
+                [NSApp terminate:self];
+            }
+        }];
+        
+        return;
+    }
+    
+    // Register the global hotkey
     if ([self registerGlobalHotkeyCG]) {
         // Hide from dock, command tab, etc.
         // Not using LSBackgroundOnly so that we can display NSAlerts beforehand
         [NSApp setActivationPolicy:NSApplicationActivationPolicyProhibited];
     } else {
-        [dialogs informHotkeyRegistrationFailure];
-        [NSApp terminate:self];
+        // Always show the permissions wizard first when hotkey registration fails
+        // This ensures we catch all possible permission-related issues
+        NSLog(@"Hotkey registration failed, showing permissions wizard");
+        
+        // Show our step-by-step wizard to guide the user through granting permissions
+        [self.dialogs showAccessibilityPermissionsWizard:^(BOOL granted) {
+            if (granted) {
+                // User completed the wizard and permissions were granted
+                NSLog(@"Accessibility permissions granted through wizard, trying to register hotkey again");
+                [self continueSetupWithPermissions];
+            } else {
+                // User canceled the wizard
+                NSLog(@"User canceled permissions wizard, quitting");
+                [NSApp terminate:self];
+            }
+        }];
     }
 }
 
@@ -75,10 +152,34 @@ static NSString * _Nullable stringFromCGKeyboardEvent(CGEventRef event);
 }
 
 - (BOOL)registerGlobalHotkeyCG {
+    // First, explicitly check for accessibility permissions
+    if (!hasAccessibility()) {
+        NSLog(@"Cannot register global hotkey - accessibility permissions not granted");
+        
+        // Show the permissions wizard
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self.dialogs showAccessibilityPermissionsWizard:^(BOOL granted) {
+                if (granted) {
+                    // User completed the wizard and permissions were granted
+                    NSLog(@"Accessibility permissions granted through wizard, trying to register hotkey again");
+                    [self continueSetupWithPermissions];
+                } else {
+                    // User canceled the wizard
+                    NSLog(@"User canceled permissions wizard, quitting");
+                    [NSApp terminate:self];
+                }
+            }];
+        });
+        
+        return false;
+    }
+    
     // Create event mask for keyboard events
     CGEventMask eventMask = CGEventMaskBit(kCGEventFlagsChanged) |
                            CGEventMaskBit(kCGEventKeyDown) |
                            CGEventMaskBit(kCGEventKeyUp);
+    
+    NSLog(@"Attempting to create event tap...");
     
     // Create event tap
     CFMachPortRef port = CGEventTapCreate(kCGHIDEventTap,
@@ -88,10 +189,28 @@ static NSString * _Nullable stringFromCGKeyboardEvent(CGEventRef event);
                                          &eventTapHandler,
                                          (__bridge void *)self);
     if (!port) {
-        NSLog(@"Failed to create event tap");
+        NSLog(@"Failed to create event tap - this typically happens when accessibility permissions are not granted");
+        
+        // Show the permissions wizard since this is likely a permissions issue
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self.dialogs showAccessibilityPermissionsWizard:^(BOOL granted) {
+                if (granted) {
+                    // User completed the wizard and permissions were granted
+                    NSLog(@"Accessibility permissions granted through wizard, trying to register hotkey again");
+                    [self continueSetupWithPermissions];
+                } else {
+                    // User canceled the wizard
+                    NSLog(@"User canceled permissions wizard, quitting");
+                    [NSApp terminate:self];
+                }
+            }];
+        });
+        
         return false;
     }
 
+    NSLog(@"Event tap created successfully");
+    
     // Create run loop source
     CFRunLoopSourceRef runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, port, 0);
     if (!runLoopSource) {
@@ -100,11 +219,15 @@ static NSString * _Nullable stringFromCGKeyboardEvent(CGEventRef event);
         return false;
     }
     
+    NSLog(@"Run loop source created successfully");
+    
     // Add to current run loop
     CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, kCFRunLoopCommonModes);
     
     // Enable the event tap
     CGEventTapEnable(port, true);
+    
+    NSLog(@"Event tap enabled, starting run loop");
     
     // Start the run loop
     CFRunLoopRun();
@@ -116,10 +239,13 @@ static NSString * _Nullable stringFromCGKeyboardEvent(CGEventRef event);
     // Create event source
     appEventSource = CGEventSourceCreate(kCGEventSourceStatePrivate);
     if (!appEventSource) {
-        NSLog(@"Failed to create event source");
+        NSLog(@"Failed to create event source - continuing anyway as this is not critical");
         // Continue anyway as this is not critical
+    } else {
+        NSLog(@"Event source created successfully");
     }
 
+    NSLog(@"Global hotkey registration completed successfully");
     return true;
 }
 
@@ -223,13 +349,29 @@ static NSRunningApplication* _Nullable findActiveApp(void) {
     return [[NSWorkspace sharedWorkspace] menuBarOwningApplication];
 }
 
+// Check if accessibility permissions are granted without showing the prompt
 static BOOL hasAccessibility(void) {
-#if defined(DEBUG)
-    return YES;
-#else
-    NSDictionary *options = @{(__bridge id)kAXTrustedCheckOptionPrompt: @YES};
-    return AXIsProcessTrustedWithOptions((__bridge CFDictionaryRef)options);
-#endif
+    // Track the last known state to reduce logging
+    static BOOL lastKnownState = NO;
+    static BOOL initialized = NO;
+    
+    // Always check the actual permissions status
+    BOOL trusted = AXIsProcessTrusted();
+    
+    // Only log when the state changes or on first check
+    if (!initialized || trusted != lastKnownState) {
+        if (trusted) {
+            NSLog(@"Accessibility permissions check: GRANTED");
+        } else {
+            NSLog(@"Accessibility permissions check: NOT GRANTED");
+        }
+        
+        // Update the last known state
+        lastKnownState = trusted;
+        initialized = YES;
+    }
+    
+    return trusted;
 }
 
 static NSString * _Nullable stringFromCGKeyboardEvent(CGEventRef event) {
@@ -249,6 +391,30 @@ static CGEventRef eventTapHandler(CGEventTapProxy proxy, CGEventType type, CGEve
     // Early return for non-keyboard events
     if (type != kCGEventFlagsChanged && type != kCGEventKeyDown && type != kCGEventKeyUp) {
         return event;
+    }
+    
+    // Check if we still have accessibility permissions
+    // This handles the case where permissions are revoked while the app is running
+    if (!hasAccessibility()) {
+        NSLog(@"Accessibility permissions have been revoked while app is running");
+        
+        // Get delegate from user info
+        SQAAppDelegate *delegate = (__bridge SQAAppDelegate *)userInfo;
+        if (delegate) {
+            // Show the permissions wizard
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [delegate.dialogs showAccessibilityPermissionsWizard:^(BOOL granted) {
+                    if (granted) {
+                        // User completed the wizard and permissions were granted
+                        NSLog(@"Accessibility permissions granted through wizard, continuing");
+                    } else {
+                        // User canceled the wizard
+                        NSLog(@"User canceled permissions wizard, quitting");
+                        [NSApp terminate:delegate];
+                    }
+                }];
+            });
+        }
     }
     
     // Get delegate from user info
