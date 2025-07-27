@@ -22,7 +22,7 @@
     return resolvedKeyCode;
 }
 
-CGKeyCode whatIsQ() {
+CGKeyCode whatIsQ(void) {
     NSData *rawLayout = (__bridge NSData *)((CFDataRef) TISGetInputSourceProperty(TISCopyCurrentKeyboardInputSource(), kTISPropertyUnicodeKeyLayoutData));
     UInt32 cmdKeyBitmask = (cmdKey >> 8) & 0xFF;
     UInt32 deadKeyState = 0;

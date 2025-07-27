@@ -2,6 +2,9 @@
 #import "SQAPreferences.h"
 @import Carbon.HIToolbox;
 
+// Constants for timer configuration
+static const NSUInteger kTimerIntervalMs = 15;
+
 typedef NS_ENUM(NSInteger, SQAMachineState) {
     SQAStateMachineInitialized,
     SQAStateMachineHolding,
@@ -17,6 +20,9 @@ typedef NS_ENUM(NSInteger, SQAMachineState) {
     CFTimeInterval lastUpdate;
     dispatch_source_t timer;
 }
+
+// Private property for progress calculation
+@property (nonatomic, readonly) CGFloat progress;
 @end
 
 @implementation SQAStateMachine
@@ -25,19 +31,35 @@ typedef NS_ENUM(NSInteger, SQAMachineState) {
 @synthesize onCancelled;
 @synthesize onCompletion;
 
+- (void)dealloc {
+    // Clean up timer if it exists
+    if (timer) {
+        dispatch_source_cancel(timer);
+        // Set to nil to avoid potential use-after-free issues
+        timer = nil;
+    }
+}
+
 - (instancetype)initWithEventSource:(CGEventSourceRef)eventSource {
     self = [super init];
     if (!self) return self;
 
+    // Store the event source
+    self->eventSource = eventSource;
+    
+    // Initialize state
     currentState = SQAStateMachineInitialized;
 
+    // Create timer on high priority queue
     dispatch_queue_t queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0);
     timer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, queue);
     if (!timer) {
+        NSLog(@"Failed to create timer for state machine");
         return nil;
     }
 
-    const NSUInteger interval = 15 * NSEC_PER_MSEC;
+    // Configure timer interval
+    const NSUInteger interval = kTimerIntervalMs * NSEC_PER_MSEC;
     dispatch_source_set_timer(timer, dispatch_time(DISPATCH_TIME_NOW, 0), interval, 0);
     dispatch_source_set_event_handler(timer, ^{ [self checkRemap]; });
 

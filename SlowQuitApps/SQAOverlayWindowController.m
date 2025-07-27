@@ -37,10 +37,16 @@
 
         [titleFxView addSubview:titleView];
 
-        NSStackView *stackView = [NSStackView stackViewWithViews:@[overlayView, titleFxView]];
-        stackView.orientation = NSLayoutConstraintOrientationVertical;
-        stackView.alignment = NSLayoutAttributeCenterX;
-        stackView.spacing = 0;
+        // Create a vertical stack view to organize the UI components
+        NSStackView *contentStackView = [NSStackView stackViewWithViews:@[overlayView, titleFxView]];
+        // Set vertical orientation for stacking components from top to bottom
+        contentStackView.orientation = NSUserInterfaceLayoutOrientationVertical;
+        // Center align components horizontally
+        contentStackView.alignment = NSLayoutAttributeCenterX;
+        // Configure distribution for better layout control
+        contentStackView.distribution = NSStackViewDistributionGravityAreas;
+        // Set spacing between stack view items
+        contentStackView.spacing = 0;
 
         [NSLayoutConstraint activateConstraints:@[
             [overlayView.widthAnchor constraintEqualToConstant:overlayFrame.size.width],
@@ -52,14 +58,16 @@
             [titleFxView.heightAnchor constraintEqualToAnchor:titleView.heightAnchor],
         ]];
 
-        NSPanel *panel = [[NSPanel alloc] initWithContentRect:stackView.frame
+        // Create a non-activating, borderless panel that floats above other windows
+        // NSWindowStyleMaskNonactivatingPanel ensures the panel won't become key window
+        NSPanel *panel = [[NSPanel alloc] initWithContentRect:contentStackView.frame
                                                     styleMask:NSWindowStyleMaskBorderless|NSWindowStyleMaskNonactivatingPanel
                                                       backing:NSBackingStoreBuffered
                                                         defer:YES];
         panel.opaque = NO;
         panel.backgroundColor = NSColor.clearColor;
         panel.level = NSScreenSaverWindowLevel;
-        panel.contentView = stackView;
+        panel.contentView = contentStackView;
 
         self.window = panel;
     }
@@ -72,9 +80,13 @@
     titleView.stringValue = title;
     [titleView sizeToFit];
 
-    [self showWindow:nil];
-    [self.window center];
-    [self.window makeKeyAndOrderFront:self];
+    // Show the window without making it key since it's a non-activating panel
+    // Don't use showWindow: as it tries to make the window key
+    NSWindow *window = [self window];
+    if (window) {
+        [window center];
+        [window orderFront:self]; // Use orderFront instead of makeKeyAndOrderFront
+    }
 
     overlayView.progressDuration = duration;
     [overlayView updateLayer];

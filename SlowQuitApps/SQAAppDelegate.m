@@ -6,20 +6,26 @@
 #import "SQAStateMachine.h"
 #import "SQAAutostart.h"
 
+// Forward declarations of static helper functions
+static NSRunningApplication* _Nullable findActiveApp(void);
+static BOOL hasAccessibility(void);
+static CGEventRef eventTapHandler(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *userInfo);
+static NSString * _Nullable stringFromCGKeyboardEvent(CGEventRef event);
+
 @interface SQAAppDelegate() {
 @private
-    SQAStateMachine *stateMachine;
-    id<SQAOverlayViewInterface> overlayView;
-    CFMachPortRef eventTapPort;
-    CFRunLoopSourceRef eventRunLoop;
-    CGEventSourceRef appEventSource;
+    SQAStateMachine * _Nullable stateMachine;
+    id<SQAOverlayViewInterface> _Nullable overlayView;
+    CFMachPortRef _Nullable eventTapPort;
+    CFRunLoopSourceRef _Nullable eventRunLoop;
+    CGEventSourceRef _Nullable appEventSource;
     BOOL appSwitcherActive;
 }
 @end
 
 @implementation SQAAppDelegate
 
-- (id)init {
+- (instancetype)init {
     self = [super init];
     if (!self) { return self; }
 
@@ -69,23 +75,50 @@
 }
 
 - (BOOL)registerGlobalHotkeyCG {
-    CGEventMask eventMask = CGEventMaskBit(kCGEventFlagsChanged) | CGEventMaskBit(kCGEventKeyDown) | CGEventMaskBit(kCGEventKeyUp);
+    // Create event mask for keyboard events
+    CGEventMask eventMask = CGEventMaskBit(kCGEventFlagsChanged) |
+                           CGEventMaskBit(kCGEventKeyDown) |
+                           CGEventMaskBit(kCGEventKeyUp);
+    
+    // Create event tap
     CFMachPortRef port = CGEventTapCreate(kCGHIDEventTap,
-                                          kCGHeadInsertEventTap,
-                                          kCGEventTapOptionDefault, eventMask,
-                                          &eventTapHandler, (__bridge void *)self);
+                                         kCGHeadInsertEventTap,
+                                         kCGEventTapOptionDefault,
+                                         eventMask,
+                                         &eventTapHandler,
+                                         (__bridge void *)self);
     if (!port) {
+        NSLog(@"Failed to create event tap");
         return false;
     }
 
+    // Create run loop source
     CFRunLoopSourceRef runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, port, 0);
+    if (!runLoopSource) {
+        NSLog(@"Failed to create run loop source");
+        CFRelease(port);
+        return false;
+    }
+    
+    // Add to current run loop
     CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, kCFRunLoopCommonModes);
+    
+    // Enable the event tap
     CGEventTapEnable(port, true);
+    
+    // Start the run loop
     CFRunLoopRun();
 
+    // Store references for cleanup
     eventTapPort = port;
     eventRunLoop = runLoopSource;
+    
+    // Create event source
     appEventSource = CGEventSourceCreate(kCGEventSourceStatePrivate);
+    if (!appEventSource) {
+        NSLog(@"Failed to create event source");
+        // Continue anyway as this is not critical
+    }
 
     return true;
 }
@@ -184,11 +217,13 @@
     return (invertList ? NO : YES);
 }
 
-NSRunningApplication* findActiveApp() {
+#pragma mark - Helper Functions
+
+static NSRunningApplication* _Nullable findActiveApp(void) {
     return [[NSWorkspace sharedWorkspace] menuBarOwningApplication];
 }
 
-BOOL hasAccessibility() {
+static BOOL hasAccessibility(void) {
 #if defined(DEBUG)
     return YES;
 #else
@@ -197,22 +232,43 @@ BOOL hasAccessibility() {
 #endif
 }
 
-CGEventRef eventTapHandler(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *userInfo) {
+static NSString * _Nullable stringFromCGKeyboardEvent(CGEventRef event) {
+    if (!event) return nil;
+    
+    UniCharCount actualStringLength = 0;
+    UniChar unicodeString[4] = {0, 0, 0, 0};
+    CGEventKeyboardGetUnicodeString(event, 1, &actualStringLength, unicodeString);
+    return [NSString stringWithCharacters:unicodeString length:actualStringLength];
+}
+
+// Constants for key detection
+static NSString * const kQKey = @"q";
+static NSString * const kTabKey = @"\t";
+
+static CGEventRef eventTapHandler(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *userInfo) {
+    // Early return for non-keyboard events
     if (type != kCGEventFlagsChanged && type != kCGEventKeyDown && type != kCGEventKeyUp) {
         return event;
     }
+    
+    // Get delegate from user info
     SQAAppDelegate *delegate = (__bridge SQAAppDelegate *)userInfo;
+    if (!delegate) return event;
 
+    // Get key as string
     NSString *stringedKey = stringFromCGKeyboardEvent(event);
+    if (!stringedKey) return event;
+    
+    // Get modifier flags
+    CGEventFlags flags = CGEventGetFlags(event);
+    BOOL command = (flags & kCGEventFlagMaskCommand) == kCGEventFlagMaskCommand;
+    BOOL ctrl = (flags & kCGEventFlagMaskControl) == kCGEventFlagMaskControl;
+    
+    // Check for specific keys
+    BOOL q = [kQKey isEqualToString:stringedKey];
+    BOOL tab = [kTabKey isEqualToString:stringedKey];
 
-    BOOL command = (CGEventGetFlags(event) & kCGEventFlagMaskCommand) == kCGEventFlagMaskCommand;
-    BOOL ctrl = (CGEventGetFlags(event) & kCGEventFlagMaskControl) == kCGEventFlagMaskControl;
-    BOOL q = [@"q" isEqualToString:stringedKey];
-    BOOL tab = [@"\t" isEqualToString:stringedKey];
-
-    // Cannot override App Switcher functionality, so try to detect when it
-    // is activated. Ideally the framework would give us a cleaner way to query
-    // for this, but alas...
+    // App switcher detection
     if (command && tab) {
         [delegate appSwitcherOpened];
     } else if (!command && !tab) {
@@ -229,28 +285,31 @@ CGEventRef eventTapHandler(CGEventTapProxy proxy, CGEventType type, CGEventRef e
         return event;
     }
 
+    // Handle Cmd+Q if needed
     if ([delegate shouldHandleCmdQ]) {
         dispatch_async(dispatch_get_main_queue(), ^{
             [delegate cmdQPressed];
         });
 
+        // Modify the event to prevent standard Cmd+Q behavior
         CGEventSetFlags(event, 0);
         CGEventSetIntegerValueField(event, kCGKeyboardEventKeycode, kVK_Command);
-        CGEventSetIntegerValueField(event, kCGEventSourceStateID, CGEventSourceGetSourceStateID([delegate appEventSource]));
+        
+        // Set the source state ID
+        CGEventSourceRef eventSource = [delegate appEventSource];
+        if (eventSource) {
+            CGEventSetIntegerValueField(event, kCGEventSourceStateID,
+                                       CGEventSourceGetSourceStateID(eventSource));
+        }
+        
         return event;
     }
 
+    // Default case - not handling Cmd+Q
     dispatch_async(dispatch_get_main_queue(), ^{
         [delegate cmdQNotPressed];
     });
     return event;
-}
-
-NSString * stringFromCGKeyboardEvent(CGEventRef event) {
-    UniCharCount actualStringLength = 0;
-    UniChar unicodeString[4] = {0, 0, 0, 0};
-    CGEventKeyboardGetUnicodeString(event, 1, &actualStringLength, unicodeString);
-    return [NSString stringWithCharacters:unicodeString length:actualStringLength];
 }
 
 @end
