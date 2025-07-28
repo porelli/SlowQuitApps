@@ -1,7 +1,9 @@
 # Slow Quit Apps
 
-[![Release](https://img.shields.io/github/release/dteoh/SlowQuitApps.svg)](https://github.com/dteoh/SlowQuitApps/releases)
-![Release Date](https://img.shields.io/github/release-date/dteoh/SlowQuitApps.svg)
+**This is a fork of https://github.com/dteoh/SlowQuitApps with fixes for macOS 14+**
+
+[![Release](https://img.shields.io/github/release/porelli/SlowQuitApps.svg)](https://github.com/porelli/SlowQuitApps/releases)
+![Release Date](https://img.shields.io/github/release-date/porelli/SlowQuitApps.svg)
 
 ![Preview](./img/preview.gif?raw=true "Slow Quit Apps preview")
 
@@ -32,7 +34,7 @@ feature, except it is now available on every app!
 
 ## Download & Install
 
-Pre-built binaries can be downloaded from the [releases page](https://github.com/dteoh/SlowQuitApps/releases).
+Pre-built binaries can be downloaded from the [releases page](https://github.com/porelli/SlowQuitApps/releases).
 
 Unzip, drag the app to Applications, and then run it. You can optionally
 choose to automatically start the application on login.
@@ -42,7 +44,7 @@ choose to automatically start the application on login.
 If you wish to install the application from Homebrew:
 
 ```
-$ brew tap dteoh/sqa
+$ brew tap porelli/sqa
 $ brew install --cask slowquitapps
 ```
 
@@ -102,12 +104,12 @@ app is installed through Homebrew.
 
 The currently set delay can be reviewed with:
 
-    $ defaults read com.dteoh.SlowQuitApps
+    $ defaults read com.porelli.SlowQuitApps
 
 To change the delay to 5 seconds for example, open up Terminal app and
 run the following command:
 
-    $ defaults write com.dteoh.SlowQuitApps delay -int 5000
+    $ defaults write com.porelli.SlowQuitApps delay -int 5000
 
 The delay is specified in milliseconds.
 
@@ -120,34 +122,34 @@ the "Notes" application:
 
     $ osascript -e 'id of app "Notes"'
     com.apple.Notes
-    $ defaults write com.dteoh.SlowQuitApps whitelist -array-add com.apple.Notes
+    $ defaults write com.porelli.SlowQuitApps whitelist -array-add com.apple.Notes
 
 To reset the whitelist:
 
-    $ defaults delete com.dteoh.SlowQuitApps whitelist
+    $ defaults delete com.porelli.SlowQuitApps whitelist
 
 To check whitelisted apps:
 
-    $ defaults read com.dteoh.SlowQuitApps whitelist
+    $ defaults read com.porelli.SlowQuitApps whitelist
 
 #### Blacklist mode
 
 The whitelist can be used to only allow SlowQuitApps to handle Cmd-Q for those
 selected applications. To switch on this mode:
 
-    $ defaults write com.dteoh.SlowQuitApps invertList -bool YES
+    $ defaults write com.porelli.SlowQuitApps invertList -bool YES
 
 In this mode, non-whitelisted apps will be sent the Cmd-Q keypress directly.
 
 To switch off this mode:
 
-    $ defaults delete com.dteoh.SlowQuitApps invertList
+    $ defaults delete com.porelli.SlowQuitApps invertList
 
 ### Hide overlay
 
 By default, an overlay with an indicator of the time remaining until the app gets closed appears. To hide this overlay, run the following command:
 
-    $ defaults write com.dteoh.SlowQuitApps displayOverlay -bool NO
+    $ defaults write com.porelli.SlowQuitApps displayOverlay -bool NO
 
 ## License
 
@@ -176,4 +178,4 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 The app icon is a contribution courtesy of [@fancyme][1] ([#35][2]).
 
 [1]: https://github.com/fancyme
-[2]: https://github.com/dteoh/SlowQuitApps/issues/35
+[2]: https://github.com/porelli/SlowQuitApps/issues/35

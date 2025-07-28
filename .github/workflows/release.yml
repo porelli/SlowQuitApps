@@ -1,0 +1,53 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*' # Trigger on tags starting with 'v', e.g., v0.8.3
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      
+      - name: Get tag version
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+      
+      - name: Build app
+        run: |
+          xcodebuild -project SlowQuitApps.xcodeproj -scheme SlowQuitApps -configuration Release -derivedDataPath build
+          
+      - name: Create app archive
+        run: |
+          cd build/Build/Products/Release
+          zip -r SlowQuitApps-${{ env.VERSION }}.zip SlowQuitApps.app
+          
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: SlowQuitApps ${{ env.VERSION }}
+          draft: false
+          prerelease: false
+          files: build/Build/Products/Release/SlowQuitApps-${{ env.VERSION }}.zip
+          body: |
+            # SlowQuitApps ${{ env.VERSION }}
+            
+            ## Changes in this release:
+            - Automated build from tag v${{ env.VERSION }}
+            
+            ## Installation
+            1. Download the zip file
+            2. Extract and move SlowQuitApps.app to your Applications folder
+            3. Launch the app and follow the permissions setup
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

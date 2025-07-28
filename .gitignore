@@ -7,7 +7,6 @@
 # Icon must end with two \r
 Icon
 
-
 # Thumbnails
 ._*
 
@@ -48,6 +47,5 @@ xcuserdata/
 /*.gcno
 **/xcshareddata/WorkspaceSettings.xcsettings
 
-
-xcuserdata
-xcshareddata
+### Build ###
+/build
