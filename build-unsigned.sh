@@ -23,6 +23,7 @@ xcodebuild -project SlowQuitApps.xcodeproj \
            -scheme SlowQuitApps \
            -configuration Release \
            -derivedDataPath build \
+           -arch x86_64 -arch arm64 \
            CODE_SIGN_IDENTITY="" \
            CODE_SIGNING_REQUIRED=NO \
            CODE_SIGNING_ALLOWED=NO

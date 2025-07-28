@@ -163,7 +163,7 @@ chmod +x build-unsigned.sh
 ./build-unsigned.sh
 ```
 
-This will create an unsigned app at `build/Build/Products/Release/SlowQuitApps.app` and a zip archive at `build/Build/Products/Release/SlowQuitApps.zip`.
+This will create an unsigned universal app (compatible with both Intel and Apple Silicon Macs) at `build/Build/Products/Release/SlowQuitApps.app` and a zip archive at `build/Build/Products/Release/SlowQuitApps.zip`.
 
 Since the app is unsigned, you'll need to right-click and select 'Open' the first time you run it.
 

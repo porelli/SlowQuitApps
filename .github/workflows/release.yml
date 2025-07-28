@@ -24,7 +24,7 @@ jobs:
       
       - name: Build app
         run: |
-          xcodebuild -project SlowQuitApps.xcodeproj -scheme SlowQuitApps -configuration Release -derivedDataPath build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
+          xcodebuild -project SlowQuitApps.xcodeproj -scheme SlowQuitApps -configuration Release -derivedDataPath build -arch x86_64 -arch arm64 CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO
           
       - name: Create app archive
         run: |
