@@ -17,7 +17,17 @@
         path = [path stringByDeletingLastPathComponent];
         path = [path stringByDeletingLastPathComponent];
         path = [path stringByDeletingLastPathComponent];
-        [NSWorkspace.sharedWorkspace launchApplication:path];
+        
+        // Replace deprecated launchApplication: with modern API
+        NSURL *appURL = [NSURL fileURLWithPath:path];
+        NSWorkspaceOpenConfiguration *configuration = [NSWorkspaceOpenConfiguration configuration];
+        [[NSWorkspace sharedWorkspace] openApplicationAtURL:appURL
+                                             configuration:configuration
+                                         completionHandler:^(NSRunningApplication * _Nullable app, NSError * _Nullable error) {
+            if (error) {
+                NSLog(@"Failed to launch SlowQuitApps: %@", error);
+            }
+        }];
     }
 }
 
