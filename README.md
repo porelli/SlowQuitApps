@@ -151,6 +151,32 @@ By default, an overlay with an indicator of the time remaining until the app get
 
     $ defaults write com.porelli.SlowQuitApps displayOverlay -bool NO
 
+## Building from Source
+
+If you want to build SlowQuitApps from source, you can use the included build script that disables code signing:
+
+```bash
+# Make the script executable if needed
+chmod +x build-unsigned.sh
+
+# Run the build script
+./build-unsigned.sh
+```
+
+This will create an unsigned app at `build/Build/Products/Release/SlowQuitApps.app` and a zip archive at `build/Build/Products/Release/SlowQuitApps.zip`.
+
+Since the app is unsigned, you'll need to right-click and select 'Open' the first time you run it.
+
+## Contributing
+
+### Development
+
+If you'd like to contribute to SlowQuitApps, please feel free to submit pull requests or open issues on the GitHub repository.
+
+### Release Process
+
+SlowQuitApps uses GitHub Actions to automate the build and release process. For detailed information about creating new releases, please see the [RELEASE.md](./RELEASE.md) file.
+
 ## License
 
 ```
